@@ -1,6 +1,6 @@
 # Mô phỏng Bảo mật Tin nhắn Âm thanh (Secure Audio Messaging Simulation)
 
-[](https://www.python.org/) [](https://flask.palletsprojects.com/) [](https://cryptography.io/) [\![Ngrok](https://img.shields.io/badge/Ngrok- tunnelling-green.svg)](https://ngrok.com/)
+[**▶️ Chạy thử ứng dụng tại đây!**](https://audio-message-security-simulation.onrender.com/)
 
 Một ứng dụng web tương tác được xây dựng bằng Flask và JavaScript để mô phỏng trực quan quá trình gửi và nhận một tin nhắn âm thanh được bảo mật đầu cuối. Dự án này minh họa các khái niệm mật mã hiện đại như mã hóa hybrid, chữ ký số và xác thực tính toàn vẹn.
 
