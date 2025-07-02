@@ -6,6 +6,16 @@ Một ứng dụng web tương tác được xây dựng bằng Flask và JavaSc
 
 Tất cả được gói gọn trong một file Google Colab duy nhất, cho phép bạn chạy và thử nghiệm mà không cần cài đặt môi trường phức tạp trên máy tính cá nhân.
 
+## Giao diện ứng dụng
+
+ - Giao diện ký số
+<p align="center">  
+   <img src="Picture/Screenshot (99).png" alt="Ảnh minh họa" width="850" height="480">  
+</p>
+<p align="center">  
+   <img src="Picture/Screenshot (100).png" alt="Ảnh minh họa" width="850" height="480">  
+</p>
+
 ## ✨ Các tính năng chính
 
   * **Ghi âm trực tiếp từ trình duyệt**: Sử dụng `Web Audio API` để ghi âm giọng nói của bạn làm tin nhắn đầu vào.
