@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Bảo mật Tin nhắn Âm thanh</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; padding: 20px; background-color: #f4f7f9; color: #333; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2 { color: #0056b3; border-bottom: 2px solid #eef; padding-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .box { padding: 20px; border: 1px solid #ddd; border-radius: 5px; background-color: #fafafa; }
+        textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 13px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 10px; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #stop-recording-btn { background-color: #dc3545; }
+        #stop-recording-btn:hover { background-color: #c82333; }
+        pre { background-color: #eef; padding: 15px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; font-size: 13px; max-height: 300px; overflow-y: auto; }
+        label { font-weight: bold; margin-bottom: 5px; display: block; }
+        .full-width { grid-column: 1 / -1; }
+        #recording-status { margin-top: 15px; font-weight: bold; color: #17a2b8; }
+        #audio-playback-container { margin-top: 20px; display: none; }
+        audio { width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mô phỏng Truyền tin Âm thanh An toàn (AES-256 & RSA-2048)</h1>
+        <div class="box full-width">
+            <h2>Bước 1: Tạo khóa</h2>
+            <p>Nhấn nút để tạo các cặp khóa RSA cho Alice (Người gửi) và Bob (Người nhận).</p>
+            <button id="generate-keys-btn">Tạo Khóa cho cả Alice và Bob</button>
+        </div>
+        <div class="grid">
+            <div class="box">
+                <h2>Phía Người gửi (Alice)</h2>
+                <label for="alice-public-key">Khóa công khai của Alice:</label>
+                <textarea id="alice-public-key" readonly></textarea>
+                <label for="alice-private-key">Khóa riêng của Alice:</label>
+                <textarea id="alice-private-key" readonly></textarea>
+                <hr>
+                <label for="bob-public-key-input">Khóa công khai của Bob (đã tự điền):</label>
+                <textarea id="bob-public-key-input"></textarea>
+                <hr>
+                <label>Ghi âm Tin nhắn thoại:</label>
+                <div>
+                    <button id="start-recording-btn" disabled>Bắt đầu Ghi âm</button>
+                    <button id="stop-recording-btn" disabled>Dừng Ghi âm</button>
+                </div>
+                <div id="recording-status">Trạng thái: Sẵn sàng. (Vui lòng tạo khóa trước)</div>
+                <div id="audio-playback-container">
+                    <label>Nghe lại bản ghi âm đã gửi:</label>
+                    <audio id="audio-playback" controls></audio>
+                </div>
+            </div>
+            <div class="box">
+                <h2>Phía Người nhận (Bob)</h2>
+                <label for="bob-public-key">Khóa công khai của Bob:</label>
+                <textarea id="bob-public-key" readonly></textarea>
+                <label for="bob-private-key">Khóa riêng của Bob:</label>
+                <textarea id="bob-private-key" readonly></textarea>
+            </div>
+        </div>
+        <div class="box full-width">
+            <h2>Kết quả Xử lý</h2>
+            <h3>Gói tin được gửi đi (JSON):</h3>
+            <pre id="packet-output">Gói tin sẽ xuất hiện ở đây...</pre>
+            <h3>Nhật ký xử lý (Log):</h3>
+            <pre id="log-output">Nhật ký các bước sẽ xuất hiện ở đây...</pre>
+        </div>
+    </div>
+
+    <script>
+        // --- Lấy tham chiếu đến các phần tử HTML để điều khiển chúng ---
+        const generateBtn = document.getElementById('generate-keys-btn');
+        const startRecordingBtn = document.getElementById('start-recording-btn');
+        const stopRecordingBtn = document.getElementById('stop-recording-btn');
+        const statusDiv = document.getElementById('recording-status');
+        const audioPlayback = document.getElementById('audio-playback');
+        const audioPlaybackContainer = document.getElementById('audio-playback-container');
+        const logOutput = document.getElementById('log-output');
+
+        // --- Biến cho việc ghi âm ---
+        let mediaRecorder;
+        let audioChunks = [];
+
+        // --- Xử lý sự kiện khi người dùng nhấn nút "Tạo Khóa" ---
+        generateBtn.addEventListener('click', async () => {
+            logOutput.textContent = 'Đang tạo khóa...';
+            try {
+                const response = await fetch('/generate-all-keys', { method: 'POST' });
+                const data = await response.json();
+
+                document.getElementById('alice-public-key').value = data.alice_public_key;
+                document.getElementById('alice-private-key').value = data.alice_private_key;
+                document.getElementById('bob-public-key').value = data.bob_public_key;
+                document.getElementById('bob-private-key').value = data.bob_private_key;
+                document.getElementById('bob-public-key-input').value = data.bob_public_key;
+
+                logOutput.textContent = 'Đã tạo khóa thành công! Sẵn sàng để ghi âm.';
+                startRecordingBtn.disabled = false;
+            } catch (error) {
+                logOutput.textContent = `Lỗi khi tạo khóa: ${error.message}.`;
+            }
+        });
+
+        // --- Xử lý sự kiện khi nhấn nút "Bắt đầu Ghi âm" ---
+        startRecordingBtn.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                audioPlaybackContainer.style.display = 'none';
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPlayback.src = audioUrl;
+                    audioPlaybackContainer.style.display = 'block';
+
+                    const formData = new FormData();
+                    formData.append('audio_data', audioBlob, 'recording.webm');
+                    formData.append('alice_private_key', document.getElementById('alice-private-key').value);
+                    formData.append('alice_public_key', document.getElementById('alice-public-key').value);
+                    formData.append('bob_public_key', document.getElementById('bob-public-key-input').value);
+                    formData.append('bob_private_key', document.getElementById('bob-private-key').value);
+
+                    logOutput.textContent = 'Đã dừng ghi âm. Đang gửi dữ liệu để mã hóa và xử lý...';
+
+                    const response = await fetch('/process-message', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        document.getElementById('packet-output').textContent = JSON.stringify(result.packet, null, 2);
+                    } else {
+                        document.getElementById('packet-output').textContent = 'Có lỗi xảy ra.';
+                    }
+                    logOutput.textContent = result.log;
+                };
+
+                mediaRecorder.start();
+                statusDiv.textContent = "🔴 Đang ghi âm...";
+                startRecordingBtn.disabled = true;
+                stopRecordingBtn.disabled = false;
+
+            } catch (err) {
+                statusDiv.textContent = `Lỗi: ${err.message}. Bạn đã cho phép truy cập micro chưa?`;
+            }
+        });
+
+        // --- Xử lý sự kiện khi nhấn nút "Dừng Ghi âm" ---
+        stopRecordingBtn.addEventListener('click', () => {
+            mediaRecorder.stop();
+            statusDiv.textContent = "Trạng thái: Sẵn sàng ghi âm.";
+            startRecordingBtn.disabled = false;
+            stopRecordingBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>
