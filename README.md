@@ -8,7 +8,6 @@ Tất cả được gói gọn trong một file Google Colab duy nhất, cho ph�
 
 ## Giao diện ứng dụng
 
- - Giao diện ký số
 <p align="center">  
    <img src="Picture/Screenshot (99).png" alt="Ảnh minh họa" width="850" height="480">  
 </p>
